@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Trading Bot - Fase 7</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/mini.css">
+    
+    <style>
+        :root {
+            --bg: #0a0a0f;
+            --bg-secondary: #12121a;
+            --card: #1a1a24;
+            --border: #2a2a3a;
+            --text: #e8e8f0;
+            --text-muted: #6b6b80;
+            --green: #00d4aa;
+            --red: #ff4757;
+            --yellow: #fbbf24;
+            --blue: #3b82f6;
+        }
+
+        .dark {
+            --bg: #0a0a0f;
+            --bg-secondary: #12121a;
+            --card: #1a1a24;
+            --border: #2a2a3a;
+            --text: #e8e8f0;
+            --text-muted: #6b6b80;
+            --green: #00d4aa;
+            --red: #ff4757;
+            --yellow: #fbbf24;
+            --blue: #3b82f6;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .glass-card {
+            background: rgba(18, 18, 26, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        .badge-position {
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        .badge-long {
+            background: rgba(0, 212, 170, 0.2);
+            color: var(--green);
+        }
+
+        .badge-short {
+            background: rgba(255, 71, 87, 0.2);
+            color: var(--red);
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 300;
+            background: linear-gradient(135deg, var(--green), var(--yellow));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .metric-label {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 200px;
+        }
+
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .pulse {
+            animation: pulse-slow 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <!-- Navegación -->
+    <nav class="border-b border-border/50 backdrop-blur-md bg-bg-secondary/80 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-brain text-green-500"></i>
+                    <span class="text-lg font-bold">Trading Bot Dashboard</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span id="last-update" class="text-sm text-text-muted">Actualizando...</span>
+                    <a href="http://localhost:8000" target="_blank" class="text-sm text-blue-400 hover:text-blue-30 transition-colors">
+                        <i class="fas fa-link"></i> API
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenido Principal -->
+    <main class="max-w-7xl mx-auto p-6">
+
+        <!-- Estado del Mercado -->
+        <section class="mb-6">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                <i class="fas fa-chart-line text-yellow-400"></i> Estado del Mercado
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Precio BTC -->
+                <div class="glass-card p-5 rounded-xl">
+                    <div class="flex items-baseline gap-2">
+                        <div class="text-3xl font-bold text-green-400" id="btc-price">$-</div>
+                        <div class="text-text-muted">BTC/USD</div>
+                    </div>
+                    <div class="mt-2 text-sm text-text-muted" id="btc-change">---</div>
+                </div>
+                
+                <!-- SMA 20 -->
+                <div class="glass-card p-5 rounded-xl">
+                    <div class="flex items-baseline gap-2">
+                        <div class="text-2xl font-medium text-blue-400" id="sma20">$-</div>
+                        <div class="text-text-xs text-text-muted">SMA 20</div>
+                    </div>
+                </div>
+                
+                <!-- SMA 50 -->
+                <div class="glass-card p-5 rounded-xl">
+                    <div class="flex items-baseline gap-2">
+                        <div class="text-2xl font-medium text-purple-400" id="sma50">$-</div>
+                        <div class="text-text-xs text-text-muted">SMA 50</div>
+                    </div>
+                </div>
+                
+                <!-- Fear & Greed -->
+                <div class="glass-card p-5 rounded-xl">
+                    <div class="flex items-baseline gap-2">
+                        <div class="text-2xl font-bold" id="fear-greed" style="color: var(--yellow);">--</div>
+                        <div class="div text-text-xs">F&G Index</div>
+                    </div>
+                    <div class="mt-2">
+                        <span class="text-xs px-2 py-1 rounded bg-bg-secondary" id="fg-classification">Neutral</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Estado de Billetera -->
+        <section class="mb-6">
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                <i class="fas fa-wallet text-yellow-400"></i> Estado de Billetera
+            </h2>
+            <div class="glass-card p-6 rounded-2xl text-center">
+                <div class="text-4xl font-bold" id="capital-amount">$10,000.00</div>
+                <div class="text-text-muted text-sm mb-2">Capital Disponible</div>
+                <div class="mb-4">
+                    <span id="position-badge" class="badge-position badge-long">POSICIÓN ABIERTA</span>
+                </div>
+                <div class="text-text-muted text-sm" id="position-desc">No hay posición abierta actualmente</div>
+            </div>
+        </section>
+
+        <!-- Historial de Trading -->
+        <section>
+            <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                <i class="fas fa-history text-purple-400"></i> Historial de Trading
+            </h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <thead>
+                        <tr class="border-b border-border/50">
+                            <th class="text-left text-xs font-medium text-text-muted px-6 py-3">Fecha</th>
+                            <th class="text-left text-xs font-medium text-text-muted px-6 py-3">Tipo</th>
+                            <th class="text-left text-xs font-medium text-text-muted px-6 py-3">Precio</th>
+                            <th class="text-left text-xs font-medium text-text-muted px-6 py-3">Capital Restante</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trade-history">
+                        <!-- Llenado dinámico -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // Configuración
+        const API_BASE = 'http://localhost:8000';
+        const UPDATE_INTERVAL = 30000; // 30 segundos
+
+        // Elementos del DOM
+        const btcPrice = document.getElementById('btc-price');
+        const btcChange = document.getElementById('btc-change');
+        const sma20 = document.getElementById('sma20');
+        const sma50 = document.getElementById('sma50');
+        const fearGreed = document.getElementById('fear-greed');
+        const fgClassification = document.getElementById('fg-classification');
+        const capitalAmount = document.getElementById('capital-amount');
+        const positionBadge = document.getElementById('position-badge');
+        const positionDesc = document.getElementById('position-desc');
+        const lastUpdate = document.getElementById('last-update');
+        const tradeHistoryBody = document.getElementById('trade-history');
+
+        // Formatear números
+        const formatNumber = (num) => {
+            if (num === null || num === undefined) return '---';
+            return num.toLocaleString(undefined, { minimumFraction: 2, maximumFraction: 2 });
+        };
+
+        const formatCapital = (num) => {
+            if (num === null || num === undefined) return '$10,000.00';
+            return '$' + num.toLocaleString(undefined, { minimumFraction: 2, maximumFraction: 2 });
+        };
+
+        // Actualizar datos de la API
+        async function fetchData() {
+            lastUpdate.textContent = 'Última actualización: ' + new Date().toLocaleTimeString();
+            
+            try {
+                // Fetch market status
+                const marketResp = await fetch(`${API_BASE}/market-status`);
+                const marketData = await marketResp.json();
+                
+                // Update price
+                if (marketData.precio_actual) {
+                    btcPrice.textContent = formatNumber(marketData.precio_actual);
+                    
+                    // Calcular cambio simple (comparar con SMA 50 como referencia)
+                    const price = marketData.precio_actual;
+                    const sma50 = marketData.sma_50;
+                    if (sma50 && price > sma50) {
+                        btcChange.innerHTML = `<span class="text-green-400">↑ ${((price/sma50 - 1)*100).toFixed(1)}%</span>`;
+                    } else if (sma50) {
+                        btcChange.innerHTML = `<span class="text-red-500">↓ ${((1-price/sma50)*100).toFixed(1)}%</span>`;
+                    }
+                }
+                
+                // SMA 20
+                if (marketData.sma_20) {
+                    sma20.textContent = formatNumber(marketData.sma_20);
+                }
+                
+                // SMA 50
+                if (marketData.sma_50) {
+                    sma50.textContent = formatNumber(marketData.sma_50);
+                }
+                
+                // Fear & Greed
+                if (marketData.fear_greed_index) {
+                    fearGreed.textContent = marketData.fear_greed_index;
+                    const fgValue = marketData.fear_greed_index;
+                    if (fgValue <= 25) {
+                        fgClassification.innerHTML = '<span class="px-2 py-1 rounded bg-red-500/20 text-red-400 text-xs">Miedo Extremo</span>';
+                    } else if (fgValue <= 50) {
+                        fgClassification.innerHTML = '<span class="px-2 py-1 rounded bg-yellow-500/20 text-yellow-400 text-xs">Miedo</span>';
+                    } else if (fgValue <= 75) {
+                        fgClassification.innerHTML = '<span class="px-2 py-1 rounded bg-green-500/20 text-green-400 text-xs">Greed</span>';
+                    } else {
+                        fgClassification.innerHTML = '<span class="px-2 py-1 rounded bg-purple-500/20 text-purple-400 text-xs">Greed Extremo</span>';
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Error fetching market data:', error);
+            }
+
+            // Fetch portfolio
+            try {
+                const portfolioResp = await fetch(`${API_BASE}/portfolio`);
+                const portfolioData = await portfolioResp.json();
+                
+                if (portfolioData.capital !== undefined) {
+                    capitalAmount.textContent = formatCapital(portfolioData.capital);
+                }
+                
+                // Actualizar posición
+                const hasPosition = portfolioData.posicion_abierta;
+                if (hasPosition) {
+                    positionBadge.className = 'badge-position badge-short';
+                    positionBadge.textContent = 'POSICIÓN CERRADA';
+                    positionDesc.textContent = 'El bot no tiene posición abierta en este momento';
+                    positionBadge.style.background = 'rgba(255, 71, 87, 0.2)';
+                    positionDesc.style.color = 'var(--red)';
+                } else {
+                    positionBadge.className = 'badge-position badge-long';
+                    positionBadge.textContent = 'POSICIÓN ABIERTA';
+                    positionDesc.textContent = 'El bot tiene posición abierta activa';
+                    positionBadge.style.background = 'rgba(0, 212, 170, 0.2)';
+                    positionDesc.style.color = 'var(--green)';
+                }
+                
+            } catch (error) {
+                console.error('Error fetching portfolio:', error);
+            }
+
+            // Fetch history
+            try {
+                const historyResp = await fetch(`${API_BASE}/history`);
+                const historyData = await historyResp.json();
+                
+                // Limpiar tabla actual
+                tradeHistoryBody.innerHTML = '';
+                
+                if (historyData.historial && historyData.historial.length > 0) {
+                    historyData.historial.slice(-20).forEach(trade => {
+                        const row = document.createElement('tr');
+                        const date = new Date(trade.fecha).toLocaleString();
+                        const capitalStr = formatCapital(trade.capital_restante || 10000);
+                        
+                        row.innerHTML = `
+                            <td class="text-left text-xs text-text-muted px-6 py-3">${date}</td>
+                            <td class="text-left text-xs font-medium">
+                                <span class="${trade.tipo === 'COMPRA' ? 'text-green-400' : 'text-red-400'}">
+                                    <i class="fas ${trade.tipo === 'COMPRA' ? 'fa-arrow-up' : 'fa-arrow-down'} mr-1"></i>${trade.tipo}
+                                </span>
+                            </td>
+                            <td class="text-left text-xs text-text-muted px-6 py-3">${formatNumber(trade.precio)}</td>
+                            <td class="text-left text-xs text-text-muted px-6 py-3">${capitalStr}</td>
+                        `;
+                        tradeHistory.appendChild(row);
+                    });
+                } else {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td colspan="4" class="text-center text-text-muted py-8">No hay operaciones en el historial</td>`;
+                    tradeHistoryBody.appendChild(row);
+                }
+                
+            } catch (error) {
+                console.error('Error fetching trade history:', error);
+            }
+        }
+
+        // SetInterval para actualización cada 30 segundos
+        setInterval(fetchData, UPDATE_INTERVAL);
+        
+        // Fetch inicial al cargar
+        fetchData();
+    </script>
+
+</body>
+</html>

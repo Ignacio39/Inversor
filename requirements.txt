@@ -5,3 +5,5 @@ apscheduler
 yfinance
 requests
 pandas
+python-binance
+python-dotenv
